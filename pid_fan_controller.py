@@ -52,11 +52,13 @@ hwmonMb = '/sys/devices/platform/nct6775.2592/hwmon/hwmon0/'
 hwmonGpu = '/sys/devices/pci0000:00/0000:00:03.1/0000:26:00.0/0000:27:00.0/0000:28:00.0/hwmon/hwmon3/'
 
 # fans
-fanExhaust = pwmFan(hwmonMb + "pwm1", 80, 255)
+# default stop
+fanExhaustTop = pwmFan(hwmonMb + "pwm1", 50, 255)
+fanExhaustBack = pwmFan(hwmonMb + "pwm3", 80, 255)
 fanCpu = pwmFan(hwmonMb + "pwm2", 70, 255)
-fanIntakeTop = pwmFan(hwmonMb + "pwm5", 80, 255)
-fanIntakeMid = pwmFan(hwmonMb + "pwm6", 40, 255)
-fanIntakeBot = pwmFan(hwmonMb + "pwm4", 80, 255)
+fanIntakeTop = pwmFan(hwmonMb + "pwm5", 60, 255)
+fanIntakeMid = pwmFan(hwmonMb + "pwm6", 70, 255)
+fanIntakeBot = pwmFan(hwmonMb + "pwm4", 60, 255)
 
 # sensors
 cpuSensor = tempSensor(hwmonMb + 'temp2_input')
@@ -70,8 +72,9 @@ while True:
     avgDelta = 0.5*cpuDelta + 0.5*gpuDelta
     fanCpu.set_speed(cpuDelta)
     fanIntakeTop.set_speed(cpuDelta)
-    fanIntakeMid.set_speed(avgDelta)
+    fanIntakeMid.set_speed(gpuDelta)
     fanIntakeBot.set_speed(gpuDelta)
-    fanExhaust.set_speed(avgDelta)
+    fanExhaustTop.set_speed(avgDelta)
+    fanExhaustBack.set_speed(avgDelta)
     #print(cpuTemp, gpuTemp, cpuDelta, gpuDelta)
     time.sleep(1)
