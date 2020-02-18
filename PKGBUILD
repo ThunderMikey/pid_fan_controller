@@ -13,7 +13,7 @@ source=('pid_fan_controller.py'
         'set_fan_control_mode.sh'
         'pid-fan-controller.service')
 md5sums=('7214fa2671e2a97c48165888ad69498c'
-         '3da274bf0350d74b54b2b8a9615a26c1'
+         'f7f83d7e46223160f14d520023386f52'
          '435c279a4a593863599ccb7a9054c36c')
 
 pkgver() {

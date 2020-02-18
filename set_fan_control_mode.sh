@@ -13,6 +13,7 @@ function setMode() {
 
 setMode "pwm1_enable"
 setMode "pwm2_enable"
+setMode "pwm3_enable"
 setMode "pwm4_enable"
 setMode "pwm5_enable"
 setMode "pwm6_enable"
