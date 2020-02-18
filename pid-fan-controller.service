@@ -1,0 +1,14 @@
+[Unit]
+Description=PID fan controller
+After=lm_sensors.service
+
+[Service]
+Type=simple
+ExecStartPre=/usr/share/pid-fan-controller/set_fan_control_mode.sh 1
+ExecStart=/usr/share/pid-fan-controller/pid_fan_controller.py
+ExecStopPost=/usr/share/pid-fan-controller/set_fan_control_mode.sh 5
+
+[Install]
+WantedBy=multi-user.target
+
+# vi:ft=systemd
