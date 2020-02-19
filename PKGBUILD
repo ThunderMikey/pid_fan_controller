@@ -1,7 +1,7 @@
 # Maintainer: thundermikey
 
 pkgname=pid-fan-controller
-pkgver=0.r4.b9c0498
+pkgver=0.r8.58f9853
 pkgrel=1
 pkgdesc="PID fan controller with Python3"
 arch=('any')
@@ -12,8 +12,8 @@ provides=("$pkgname")
 source=('pid_fan_controller.py'
         'set_fan_control_mode.sh'
         'pid-fan-controller.service')
-md5sums=('7214fa2671e2a97c48165888ad69498c'
-         'f7f83d7e46223160f14d520023386f52'
+md5sums=('18b7efed2a1c1d1b555edea5f1c12b12'
+         'a3662a71819d3338b244b3ed351ead25'
          '435c279a4a593863599ccb7a9054c36c')
 
 pkgver() {

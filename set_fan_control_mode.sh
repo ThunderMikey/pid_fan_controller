@@ -4,7 +4,7 @@
 # 5 is auto mode
 # 1 is manual mode
 # 0 is no speed control (full speed)
-devPath=/sys/devices/platform/nct6775.2592/hwmon/hwmon0
+devPath=$(echo /sys/devices/platform/nct6775.2592/hwmon/hwmon*)
 autoMode=$1
 
 function setMode() {

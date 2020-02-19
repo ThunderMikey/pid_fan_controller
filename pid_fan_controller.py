@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 from simple_pid import PID
 import time
+import glob
+
+hwmonMbTemplate = '/sys/devices/platform/nct6775.2592/hwmon/hwmon*/'
+hwmonGpuTemplate = '/sys/devices/pci0000:00/0000:00:03.1/0000:26:00.0/0000:27:00.0/0000:28:00.0/hwmon/hwmon*/'
+
+hwmonMbPaths = glob.glob(hwmonMbTemplate)
+hwmonGpuPaths = glob.glob(hwmonGpuTemplate)
+
+assert len(hwmonMbPaths) == 1
+assert len(hwmonGpuPaths) == 1
+
+hwmonMb = hwmonMbPaths[0]
+hwmonGpu = hwmonGpuPaths[0]
 
 cpuTargetTemp = 55
 gpuTargetTemp = 65
@@ -47,9 +60,6 @@ cpuPidController = PID(-0.03, -0.002, -0.0005,
         setpoint=cpuTargetTemp,
         output_limits=(0.0, 1.0),
         sample_time=0.5)
-
-hwmonMb = '/sys/devices/platform/nct6775.2592/hwmon/hwmon0/'
-hwmonGpu = '/sys/devices/pci0000:00/0000:00:03.1/0000:26:00.0/0000:27:00.0/0000:28:00.0/hwmon/hwmon3/'
 
 # fans
 # default stop
