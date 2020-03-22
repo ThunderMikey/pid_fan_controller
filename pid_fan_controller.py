@@ -16,7 +16,7 @@ hwmonMb = hwmonMbPaths[0]
 hwmonGpu = hwmonGpuPaths[0]
 
 cpuTargetTemp = 55
-gpuTargetTemp = 65
+gpuTargetTemp = 70
 
 class pwmFan():
     def __init__(self, devPath, minPwm, maxPwm):
@@ -55,11 +55,11 @@ class tempSensor():
 gpuPidController = PID(-0.03, -0.002, -0.0005,
         setpoint=gpuTargetTemp,
         output_limits=(0.0, 1.0),
-        sample_time=0.5)
+        sample_time=1)
 cpuPidController = PID(-0.03, -0.002, -0.0005,
         setpoint=cpuTargetTemp,
         output_limits=(0.0, 1.0),
-        sample_time=0.5)
+        sample_time=1)
 
 # fans
 # default stop
@@ -70,6 +70,9 @@ fanIntakeTop = pwmFan(hwmonMb + "pwm5", 60, 255)
 fanIntakeMid = pwmFan(hwmonMb + "pwm6", 70, 255)
 fanIntakeBot = pwmFan(hwmonMb + "pwm4", 60, 255)
 
+# GPU fan
+fanGpu = pwmFan(hwmonGpu + "pwm1", 40, 120)
+
 # sensors
 cpuSensor = tempSensor(hwmonMb + 'temp2_input')
 gpuSensor = tempSensor(hwmonGpu + 'temp1_input')
@@ -79,12 +82,15 @@ while True:
     gpuTemp = gpuSensor.read_temp()
     cpuDelta = cpuPidController(cpuTemp)
     gpuDelta = gpuPidController(gpuTemp)
-    avgDelta = 0.5*cpuDelta + 0.5*gpuDelta
+    avgDelta = 0.4*cpuDelta + 0.6*gpuDelta
+
     fanCpu.set_speed(cpuDelta)
     fanIntakeTop.set_speed(cpuDelta)
     fanIntakeMid.set_speed(gpuDelta)
     fanIntakeBot.set_speed(gpuDelta)
     fanExhaustTop.set_speed(avgDelta)
     fanExhaustBack.set_speed(avgDelta)
+
+    fanGpu.set_speed(gpuDelta)
     #print(cpuTemp, gpuTemp, cpuDelta, gpuDelta)
     time.sleep(1)

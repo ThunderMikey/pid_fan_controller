@@ -4,9 +4,9 @@ After=lm_sensors.service
 
 [Service]
 Type=simple
-ExecStartPre=/usr/share/pid-fan-controller/set_fan_control_mode.sh 1
+ExecStartPre=/usr/share/pid-fan-controller/set_fan_control_mode.sh 0
 ExecStart=/usr/share/pid-fan-controller/pid_fan_controller.py
-ExecStopPost=/usr/share/pid-fan-controller/set_fan_control_mode.sh 5
+ExecStopPost=/usr/share/pid-fan-controller/set_fan_control_mode.sh 1
 
 [Install]
 WantedBy=multi-user.target
