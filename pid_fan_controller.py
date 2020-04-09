@@ -71,7 +71,7 @@ fanIntakeMid = pwmFan(hwmonMb + "pwm6", 70, 255)
 fanIntakeBot = pwmFan(hwmonMb + "pwm4", 60, 255)
 
 # GPU fan
-fanGpu = pwmFan(hwmonGpu + "pwm1", 40, 120)
+fanGpu = pwmFan(hwmonGpu + "pwm1", 30, 120)
 
 # sensors
 cpuSensor = tempSensor(hwmonMb + 'temp2_input')
