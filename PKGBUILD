@@ -1,7 +1,7 @@
 # Maintainer: thundermikey
 
 pkgname=pid-fan-controller
-pkgver=0.r9.7a94b51
+pkgver=0.r9.234d1cc
 pkgrel=1
 pkgdesc="PID fan controller with Python3"
 arch=('any')
@@ -12,9 +12,9 @@ provides=("$pkgname")
 source=('pid_fan_controller.py'
         'set_fan_control_mode.sh'
         'pid-fan-controller.service')
-md5sums=('d74dd33ba0569b3022bbe57f7ccae97a'
-         '6b86fe5f8bdad594136895f497575619'
-         '07f2d4bba9286a9a5119a5a33265508a')
+md5sums=(SKIP
+         SKIP
+         SKIP)
 
 pkgver() {
   printf "0.r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
