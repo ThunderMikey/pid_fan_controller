@@ -1,7 +1,7 @@
 # Maintainer: thundermikey
 
 pkgname=pid-fan-controller
-pkgver=
+pkgver=0
 pkgrel=1
 pkgdesc="PID fan controller with Python3"
 arch=('any')
