@@ -1,6 +1,9 @@
 [Unit]
 Description=PID fan controller
 After=lm_sensors.service
+Requires=lm_sensors.service
+After=basic.target
+Requires=basic.target
 
 [Service]
 Type=simple
