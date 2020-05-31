@@ -87,15 +87,18 @@ while True:
     gpuTemp = gpuSensor.read_temp()
     cpuDelta = cpuPidController(cpuTemp)
     gpuDelta = gpuPidController(gpuTemp)
-    avgDelta = 0.4*cpuDelta + 0.6*gpuDelta
+    #avgDelta = 0.4*cpuDelta + 0.6*gpuDelta
+    # use maxDelta for all fans
+    maxDelta = max(gpuDelta, cpuDelta)
 
     fanCpu.set_speed(cpuDelta)
-    fanIntakeTop.set_speed(cpuDelta)
-    fanIntakeMid.set_speed(gpuDelta)
-    fanIntakeBot.set_speed(gpuDelta)
-    fanExhaustTop.set_speed(avgDelta)
-    fanExhaustBack.set_speed(avgDelta)
-
     fanGpu.set_speed(gpuDelta)
+
+    fanIntakeTop.set_speed(maxDelta)
+    fanIntakeMid.set_speed(maxDelta)
+    fanIntakeBot.set_speed(maxDelta)
+    fanExhaustTop.set_speed(maxDelta)
+    fanExhaustBack.set_speed(maxDelta)
+
     #print(cpuTemp, gpuTemp, cpuDelta, gpuDelta)
     time.sleep(1)
