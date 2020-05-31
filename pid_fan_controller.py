@@ -5,15 +5,19 @@ import glob
 
 hwmonMbTemplate = '/sys/devices/platform/nct6775.2592/hwmon/hwmon*/'
 hwmonGpuTemplate = '/sys/devices/pci0000:00/0000:00:03.1/0000:26:00.0/0000:27:00.0/0000:28:00.0/hwmon/hwmon*/'
+k10tempTemplate = '/sys/devices/pci0000:00/0000:00:18.3/hwmon/hwmon*/'
 
 hwmonMbPaths = glob.glob(hwmonMbTemplate)
 hwmonGpuPaths = glob.glob(hwmonGpuTemplate)
+k10tempPaths = glob.glob(k10tempTemplate)
 
 assert len(hwmonMbPaths) == 1
 assert len(hwmonGpuPaths) == 1
+assert len(k10tempPaths) == 1
 
 hwmonMb = hwmonMbPaths[0]
 hwmonGpu = hwmonGpuPaths[0]
+k10temp = k10tempPaths[0]
 
 cpuTargetTemp = 55
 gpuTargetTemp = 70
@@ -74,7 +78,8 @@ fanIntakeBot = pwmFan(hwmonMb + "pwm4", 60, 255)
 fanGpu = pwmFan(hwmonGpu + "pwm1", 30, 120)
 
 # sensors
-cpuSensor = tempSensor(hwmonMb + 'temp2_input')
+# k10temp, Tdie
+cpuSensor = tempSensor(k10temp + 'temp1_input')
 gpuSensor = tempSensor(hwmonGpu + 'temp1_input')
 
 while True:
