@@ -2,6 +2,9 @@
 from simple_pid import PID
 import time
 import glob
+import os
+
+NONE_ROOT_DEBUG = bool(os.getenv('NONE_ROOT_DEBUG'))
 
 hwmonMbTemplate = '/sys/devices/platform/nct6775.2592/hwmon/hwmon*/'
 hwmonGpuTemplate = '/sys/devices/pci0000:00/0000:00:03.1/0000:26:00.0/0000:27:00.0/0000:28:00.0/hwmon/hwmon*/'
@@ -19,7 +22,7 @@ hwmonMb = hwmonMbPaths[0]
 hwmonGpu = hwmonGpuPaths[0]
 k10temp = k10tempPaths[0]
 
-cpuTargetTemp = 55
+cpuTargetTemp = 63
 gpuTargetTemp = 70
 
 class pwmFan():
@@ -39,9 +42,12 @@ class pwmFan():
         """
         assert percentage >= 0.0 and percentage <= 1.0
         pwm = self.minPwm + self.range * percentage
-        f = open(self.devPath, 'w')
-        f.write(str(int(pwm)))
-        f.close()
+        if NONE_ROOT_DEBUG:
+            print(self.devPath, percentage)
+        else:
+            f = open(self.devPath, 'w')
+            f.write(str(int(pwm)))
+            f.close()
 
 class tempSensor():
     def __init__(self, devPath):
@@ -59,11 +65,21 @@ class tempSensor():
 gpuPidController = PID(-0.03, -0.002, -0.0005,
         setpoint=gpuTargetTemp,
         output_limits=(0.0, 1.0),
-        sample_time=1)
-cpuPidController = PID(-0.03, -0.002, -0.0005,
+        sample_time=0.5)
+
+# for CPU
+# P: when temp = 85, 40% fan speed
+#   coefficient = -0.4/(85-55) = -0.01
+# I: ramp-up fan speed to 50% when temp = 65 for 10 seconds
+#   coefficient = -0.005
+# D: not sensitive to sudden temp change, however, when temp change of 30 degrees
+#   in 0.5 sec, ramp-up the fan to 100%
+#   coefficient = -1/(30/0.5) = -0.016
+# further adjustments... to take into account of P, I, D each contributing to overall fan speed
+cpuPidController = PID(-0.005, -0.005, -0.006,
         setpoint=cpuTargetTemp,
         output_limits=(0.0, 1.0),
-        sample_time=1)
+        sample_time=0.5)
 
 # fans
 # default stop
@@ -101,4 +117,4 @@ while True:
     fanExhaustBack.set_speed(maxDelta)
 
     #print(cpuTemp, gpuTemp, cpuDelta, gpuDelta)
-    time.sleep(1)
+    time.sleep(0.5)
