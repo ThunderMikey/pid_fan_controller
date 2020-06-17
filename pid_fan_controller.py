@@ -85,7 +85,7 @@ cpuPidController = PID(-0.005, -0.005, -0.006,
 # default stop
 fanExhaustTop = pwmFan(hwmonMb + "pwm1", 50, 255)
 fanExhaustBack = pwmFan(hwmonMb + "pwm3", 80, 255)
-fanCpu = pwmFan(hwmonMb + "pwm2", 70, 255)
+fanCpu = pwmFan(hwmonMb + "pwm2", 70, 190)
 fanIntakeTop = pwmFan(hwmonMb + "pwm5", 60, 255)
 fanIntakeMid = pwmFan(hwmonMb + "pwm6", 70, 255)
 fanIntakeBot = pwmFan(hwmonMb + "pwm4", 60, 255)
