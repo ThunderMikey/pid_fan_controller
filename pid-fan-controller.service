@@ -7,9 +7,9 @@ Requires=basic.target
 
 [Service]
 Type=simple
-ExecStartPre=/usr/share/pid-fan-controller/set_fan_control_mode.sh 0
+ExecStartPre=/usr/share/pid-fan-controller/override_auto_fan_control.py 1
 ExecStart=/usr/share/pid-fan-controller/pid_fan_controller.py
-ExecStopPost=/usr/share/pid-fan-controller/set_fan_control_mode.sh 1
+ExecStopPost=/usr/share/pid-fan-controller/override_auto_fan_control.py 0
 
 [Install]
 WantedBy=multi-user.target

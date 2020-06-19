@@ -1,39 +1,32 @@
 #!/usr/bin/env python3
 from simple_pid import PID
-import time
-import glob
-import os
+import time, glob, os, yaml
 
 NONE_ROOT_DEBUG = bool(os.getenv('NONE_ROOT_DEBUG'))
 
-hwmonMbTemplate = '/sys/devices/platform/nct6775.2592/hwmon/hwmon*/'
-hwmonGpuTemplate = '/sys/devices/pci0000:00/0000:00:03.1/0000:26:00.0/0000:27:00.0/0000:28:00.0/hwmon/hwmon*/'
-k10tempTemplate = '/sys/devices/pci0000:00/0000:00:18.3/hwmon/hwmon*/'
+if NONE_ROOT_DEBUG:
+    CONFIG_FILE='./pid_fan_controller_config.yaml'
+else:
+    CONFIG_FILE='/etc/pid_fan_controller_config.yaml'
 
-hwmonMbPaths = glob.glob(hwmonMbTemplate)
-hwmonGpuPaths = glob.glob(hwmonGpuTemplate)
-k10tempPaths = glob.glob(k10tempTemplate)
+with open(CONFIG_FILE, 'r') as f:
+    try:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    except yaml.YAMLError as exc:
+        print("Error in loading the config file:", CONFIG_FILE, '\n',exc)
+        exit(1)
 
-assert len(hwmonMbPaths) == 1
-assert len(hwmonGpuPaths) == 1
-assert len(k10tempPaths) == 1
-
-hwmonMb = hwmonMbPaths[0]
-hwmonGpu = hwmonGpuPaths[0]
-k10temp = k10tempPaths[0]
-
-cpuTargetTemp = 63
-gpuTargetTemp = 70
-
-class pwmFan():
-    def __init__(self, devPath, minPwm, maxPwm):
+class PwmFan:
+    def __init__(self, name, devPath, minPwm, maxPwm, press_srcs):
         assert minPwm < maxPwm
         assert minPwm >= 0 and minPwm <= 255
         assert maxPwm >= 0 and maxPwm <= 255
+        self.name = name
         self.devPath = devPath
         self.minPwm = minPwm
         self.maxPwm = maxPwm
         self.range = self.maxPwm - self.minPwm
+        self.press_srcs = press_srcs
 
     def set_speed(self, percentage):
         """
@@ -45,11 +38,13 @@ class pwmFan():
         if NONE_ROOT_DEBUG:
             print(self.devPath, percentage)
         else:
-            f = open(self.devPath, 'w')
-            f.write(str(int(pwm)))
-            f.close()
+            with open(self.devPath, 'w') as f:
+                f.write(str(int(pwm)))
 
-class tempSensor():
+    def get_pressure_srcs(self):
+        return self.press_srcs
+
+class TempSensor:
     def __init__(self, devPath):
         self.devPath = devPath
 
@@ -61,60 +56,74 @@ class tempSensor():
         # convert to float degrees
         return int(temp)/1000.0
 
-# reverse PID mode to control temperature
-gpuPidController = PID(-0.03, -0.002, -0.0005,
-        setpoint=gpuTargetTemp,
-        output_limits=(0.0, 1.0),
-        sample_time=0.5)
+class HeatPressureSrc:
+    def __init__(self, name, path, set_point, P, I, D, sample_interval):
+        self.name = name
+        self.path = path
+        self.set_point = set_point
+        self.P = P
+        self.I = I
+        self.D = D
+        self.sample_interval = sample_interval
+        self.temp_sensor = TempSensor(path)
+        self.pid_controller = PID(self.P, self.I, self.D,
+                setpoint=self.set_point,
+                output_limits=(0.0, 1.0),
+                sample_time=self.sample_interval
+                )
 
-# for CPU
-# P: when temp = 85, 40% fan speed
-#   coefficient = -0.4/(85-55) = -0.01
-# I: ramp-up fan speed to 50% when temp = 65 for 10 seconds
-#   coefficient = -0.005
-# D: not sensitive to sudden temp change, however, when temp change of 30 degrees
-#   in 0.5 sec, ramp-up the fan to 100%
-#   coefficient = -1/(30/0.5) = -0.016
-# further adjustments... to take into account of P, I, D each contributing to overall fan speed
-cpuPidController = PID(-0.005, -0.005, -0.006,
-        setpoint=cpuTargetTemp,
-        output_limits=(0.0, 1.0),
-        sample_time=0.5)
+    def get_heat_pressure(self):
+        temperature = self.temp_sensor.read_temp()
+        heat_pressure = self.pid_controller(temperature)
+        return heat_pressure
 
-# fans
-# default stop
-fanExhaustTop = pwmFan(hwmonMb + "pwm1", 50, 255)
-fanExhaustBack = pwmFan(hwmonMb + "pwm3", 80, 255)
-fanCpu = pwmFan(hwmonMb + "pwm2", 70, 190)
-fanIntakeTop = pwmFan(hwmonMb + "pwm5", 60, 255)
-fanIntakeMid = pwmFan(hwmonMb + "pwm6", 70, 255)
-fanIntakeBot = pwmFan(hwmonMb + "pwm4", 60, 255)
+    def get_name(self):
+        return self.name
 
-# GPU fan
-fanGpu = pwmFan(hwmonGpu + "pwm1", 30, 120)
+def get_only_one_wildcard_match(wc_path):
+    should_be_a_single_path = glob.glob(wc_path)
+    assert len(should_be_a_single_path) == 1
+    return should_be_a_single_path[0]
 
-# sensors
-# k10temp, Tdie
-cpuSensor = tempSensor(k10temp + 'temp1_input')
-gpuSensor = tempSensor(hwmonGpu + 'temp1_input')
+def instantiate_fan(cfg):
+    name = cfg['name']
+    wc_path = cfg['wildcard_path']
+    min_pwm = cfg['min_pwm']
+    max_pwm = cfg['max_pwm']
+    press_srcs = cfg['heat_pressure_srcs']
+    path = get_only_one_wildcard_match(wc_path)
+
+    return PwmFan(name, path, min_pwm, max_pwm, press_srcs)
+
+def instantiate_hp_src(cfg, sample_interval):
+    name = cfg['name']
+    wc_path = cfg['wildcard_path']
+    PID_params = cfg['PID_params']
+    path = get_only_one_wildcard_match(wc_path)
+
+    return HeatPressureSrc(name = name, path = path,
+            set_point = PID_params['set_point'],
+            P = PID_params['P'],
+            I = PID_params['I'],
+            D = PID_params['D'],
+            sample_interval = sample_interval
+            )
+
+sample_interval = config['sample_interval']
+heat_pressure_srcs = [ instantiate_hp_src(hp_cfg, sample_interval) for hp_cfg in config["heat_pressure_srcs"] ]
+fans = [ instantiate_fan(fan_config) for fan_config in config["fans"] ]
 
 while True:
-    cpuTemp = cpuSensor.read_temp()
-    gpuTemp = gpuSensor.read_temp()
-    cpuDelta = cpuPidController(cpuTemp)
-    gpuDelta = gpuPidController(gpuTemp)
-    #avgDelta = 0.4*cpuDelta + 0.6*gpuDelta
-    # use maxDelta for all fans
-    maxDelta = max(gpuDelta, cpuDelta)
+    heat_pressures = {}
+    for hp in heat_pressure_srcs:
+        name = hp.get_name()
+        pressure = hp.get_heat_pressure()
+        heat_pressures[name] = pressure
 
-    fanCpu.set_speed(cpuDelta)
-    fanGpu.set_speed(gpuDelta)
+    for fan in fans:
+        press_srcs = fan.get_pressure_srcs()
+        hp = [ heat_pressures[hp_src] for hp_src in press_srcs ]
+        highest_pressure = max(hp)
+        fan.set_speed(highest_pressure)
 
-    fanIntakeTop.set_speed(maxDelta)
-    fanIntakeMid.set_speed(maxDelta)
-    fanIntakeBot.set_speed(maxDelta)
-    fanExhaustTop.set_speed(maxDelta)
-    fanExhaustBack.set_speed(maxDelta)
-
-    #print(cpuTemp, gpuTemp, cpuDelta, gpuDelta)
-    time.sleep(0.5)
+    time.sleep(sample_interval)
