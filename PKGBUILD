@@ -22,7 +22,8 @@ pkgver() {
 
 package() {
   echo $pkgdir
-  install -m 644 -Dt "$pkgdir/usr/lib/systemd/system/" pid-fan-controller.service
+  install -m 644 -Dt "$pkgdir/usr/lib/systemd/system/" pid-fan-controller.service \
+    pid-fan-controller-sleep-hook.service
   install -m 755 -Dt "$pkgdir/usr/share/$pkgname/" pid_fan_controller.py override_auto_fan_control.py
 }
 

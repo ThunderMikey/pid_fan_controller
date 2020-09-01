@@ -1,0 +1,16 @@
+[Unit]
+Description = PID fan controller sleep hook
+Before = sleep.target
+StopWhenUnneeded= yes
+
+[Service]
+Type = oneshot
+RemainAfterExit = yes
+Environment="SVC=pid-fan-controller.service"
+# stop service before system suspend
+ExecStart = -/usr/bin/systemctl stop $SVC
+# start service after system resume
+ExecStop = -/usr/bin/systemctl start $SVC
+
+[Install]
+WantedBy = sleep.target
