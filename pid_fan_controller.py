@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from simple_pid import PID
-import time, glob, os, yaml
+import time, glob, os, yaml, subprocess
 
 NONE_ROOT_DEBUG = bool(os.getenv('NONE_ROOT_DEBUG'))
 
@@ -56,16 +56,34 @@ class TempSensor:
         # convert to float degrees
         return int(temp)/1000.0
 
+class CmdTempSensor:
+    def __init__(self, temp_cmd):
+        self.temp_cmd = temp_cmd
+
+    def read_temp(self):
+        completedCmd = subprocess.run(
+                self.temp_cmd,
+                check=True,
+                shell=True,
+                text=True,
+                capture_output=True)
+        # convert to float degrees
+        return int(completedCmd.stdout)/1.0
+
 class HeatPressureSrc:
-    def __init__(self, name, path, set_point, P, I, D, sample_interval):
+    def __init__(self, name, path, temp_cmd, set_point, P, I, D, sample_interval):
         self.name = name
         self.path = path
+        self.temp_cmd = temp_cmd
         self.set_point = set_point
         self.P = P
         self.I = I
         self.D = D
         self.sample_interval = sample_interval
-        self.temp_sensor = TempSensor(path)
+        if self.temp_cmd is not None:
+            self.temp_sensor = CmdTempSensor(temp_cmd)
+        else:
+            self.temp_sensor = TempSensor(path)
         self.pid_controller = PID(self.P, self.I, self.D,
                 setpoint=self.set_point,
                 output_limits=(0.0, 1.0),
@@ -97,11 +115,19 @@ def instantiate_fan(cfg):
 
 def instantiate_hp_src(cfg, sample_interval):
     name = cfg['name']
-    wc_path = cfg['wildcard_path']
     PID_params = cfg['PID_params']
-    path = get_only_one_wildcard_match(wc_path)
+    if 'wildcard_path' in cfg:
+        wc_path = cfg['wildcard_path']
+        path = get_only_one_wildcard_match(wc_path)
+    else:
+        path = None
+    temp_cmd = cfg['temp_cmd'] if 'temp_cmd' in cfg else None
+    if (path or temp_cmd) is None:
+        print(cfg)
+        raise RuntimeError("Neither `temp_cmd` or `wildcard_path` exists")
 
     return HeatPressureSrc(name = name, path = path,
+            temp_cmd = temp_cmd,
             set_point = PID_params['set_point'],
             P = PID_params['P'],
             I = PID_params['I'],
