@@ -1,0 +1,18 @@
+[Unit]
+Description = Set manual fan speed to %i percent
+After = lm_sensors.service
+Requires = lm_sensors.service
+After = multi-user.target
+Conflicts  = pid-fan-controller.service
+
+[Service]
+Type = oneshot
+RemainAfterExit = yes
+ExecStartPre = /usr/share/pid-fan-controller/override_auto_fan_control.py 1
+ExecStart = /usr/share/pid-fan-controller/set_manual_fan_speed.py %i
+ExecStopPost = /usr/share/pid-fan-controller/override_auto_fan_control.py 0
+
+[Install]
+WantedBy = multi-user.target
+
+# vi:ft=systemd

@@ -10,6 +10,11 @@ This leads to abrupt fan speed change on bursty workloads. Usually, the heat gen
 [https://github.com/jbg/macbookfan](https://github.com/jbg/macbookfan)
 
 
+# Installation
+
+I have created [https://aur.archlinux.org/packages/pid-fan-controller/](AUR
+pid-fan-controller) for Arch Linux users.
+
 # PID tuning
 
 * setpoint = 65

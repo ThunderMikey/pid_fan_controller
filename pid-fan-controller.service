@@ -7,7 +7,7 @@ After=multi-user.target
 [Service]
 Type=simple
 ExecStartPre=/usr/share/pid-fan-controller/override_auto_fan_control.py 1
-ExecStart=/usr/share/pid-fan-controller/pid_fan_controller.py
+ExecStart=/usr/share/pid-fan-controller/main_loop.py
 ExecStopPost=/usr/share/pid-fan-controller/override_auto_fan_control.py 0
 
 [Install]

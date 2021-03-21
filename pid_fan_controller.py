@@ -1,20 +1,6 @@
 #!/usr/bin/env python3
 from simple_pid import PID
-import time, glob, os, yaml, subprocess
-
-NONE_ROOT_DEBUG = bool(os.getenv('NONE_ROOT_DEBUG'))
-
-if NONE_ROOT_DEBUG:
-    CONFIG_FILE='./pid_fan_controller_config.yaml'
-else:
-    CONFIG_FILE='/etc/pid_fan_controller_config.yaml'
-
-with open(CONFIG_FILE, 'r') as f:
-    try:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    except yaml.YAMLError as exc:
-        print("Error in loading the config file:", CONFIG_FILE, '\n',exc)
-        exit(1)
+import time, glob, yaml, subprocess
 
 class PwmFan:
     def __init__(self, name, devPath, minPwm, maxPwm, press_srcs):
@@ -28,15 +14,15 @@ class PwmFan:
         self.range = self.maxPwm - self.minPwm
         self.press_srcs = press_srcs
 
-    def set_speed(self, percentage):
+    def set_speed(self, percentage, dry_run=False):
         """
         set fan speed, 0-100%. The PWM value will be calculated from minPwm and
         maxPwm
         """
         assert percentage >= 0.0 and percentage <= 1.0
         pwm = self.minPwm + self.range * percentage
-        if NONE_ROOT_DEBUG:
-            print(self.devPath, percentage)
+        if dry_run:
+            print(self.devPath, int(pwm))
         else:
             with open(self.devPath, 'w') as f:
                 f.write(str(int(pwm)))
@@ -134,22 +120,45 @@ def instantiate_hp_src(cfg, sample_interval):
             D = PID_params['D'],
             sample_interval = sample_interval
             )
+class PID_fan_controller:
+    def __init__(self, config_file):
+        with open(config_file, 'r') as f:
+            try:
+                self.config = yaml.load(f, Loader=yaml.FullLoader)
+            except yaml.YAMLError as exc:
+                print("Error in loading the config file:", CONFIG_FILE, '\n',exc)
+                exit(1)
+        self.sample_interval = self.config['sample_interval']
+        self.heat_pressure_srcs = [ instantiate_hp_src(hp_cfg, self.sample_interval) for hp_cfg in self.config["heat_pressure_srcs"] ]
+        self.fans = [ instantiate_fan(fan_config) for fan_config in self.config["fans"] ]
 
-sample_interval = config['sample_interval']
-heat_pressure_srcs = [ instantiate_hp_src(hp_cfg, sample_interval) for hp_cfg in config["heat_pressure_srcs"] ]
-fans = [ instantiate_fan(fan_config) for fan_config in config["fans"] ]
+    def run_loop(self, dry_run=False):
+        while True:
+            heat_pressures = {}
+            for hp in self.heat_pressure_srcs:
+                name = hp.get_name()
+                pressure = hp.get_heat_pressure()
+                heat_pressures[name] = pressure
 
-while True:
-    heat_pressures = {}
-    for hp in heat_pressure_srcs:
-        name = hp.get_name()
-        pressure = hp.get_heat_pressure()
-        heat_pressures[name] = pressure
+            for fan in self.fans:
+                press_srcs = fan.get_pressure_srcs()
+                hp = [ heat_pressures[hp_src] for hp_src in press_srcs ]
+                highest_pressure = max(hp)
+                fan.set_speed(highest_pressure, dry_run)
 
-    for fan in fans:
-        press_srcs = fan.get_pressure_srcs()
-        hp = [ heat_pressures[hp_src] for hp_src in press_srcs ]
-        highest_pressure = max(hp)
-        fan.set_speed(highest_pressure)
+            time.sleep(self.sample_interval)
 
-    time.sleep(sample_interval)
+    def override_fan_auto_control(self, override, dry_run=False):
+        for fan in self.config['fans']:
+            pwm_modes = fan['pwm_modes']
+            path = get_only_one_wildcard_match(pwm_modes['pwm_mode_wildcard_path'])
+            mode = pwm_modes['manual'] if override else pwm_modes['auto']
+            if dry_run:
+                print(path, mode)
+            else:
+                with open(path, 'w') as f:
+                    f.write(str(mode))
+
+    def set_manual_fan_speed(self, fan_speed, dry_run=False):
+            for fan in self.fans:
+                fan.set_speed(fan_speed/100.0, dry_run)
