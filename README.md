@@ -12,8 +12,9 @@ This leads to abrupt fan speed change on bursty workloads. Usually, the heat gen
 
 # Installation
 
-I have created [https://aur.archlinux.org/packages/pid-fan-controller/](AUR
-pid-fan-controller) for Arch Linux users.
+I have created
+[AUR pid-fan-controller](https://aur.archlinux.org/packages/pid-fan-controller/)
+for Arch Linux users.
 
 # PID tuning
 
